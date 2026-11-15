@@ -1,10 +1,10 @@
 # Marketplace release setup
 
-Author: **Erin Steph**. Intended repository:
+Author: **Erin Steph**. Repository:
 `https://github.com/ErinSteph/handheld-screen-studio`.
 
-The package uses publisher ID `erinsteph` as the intended identity. This ID
-must be registered or confirmed in the Marketplace before public publishing.
+The registered Marketplace publisher is **Erin Steph**, ID `ErinSteph`.
+The package uses that confirmed publisher ID.
 The `author` field and MIT copyright name are Erin Steph.
 
 ## Prepared in the repository
@@ -17,12 +17,10 @@ The `author` field and MIT copyright name are Erin Steph.
 - Publishing is not triggered by commits or version tags. The manual workflow
   requires its confirmation input to equal `PUBLISH`.
 
-## Account steps still required
+## Future automated releases
 
 1. Sign in at the [Marketplace publisher management page](https://marketplace.visualstudio.com/manage).
-2. Create or select the publisher. Set display name to **Erin Steph** and
-   register ID `erinsteph` if available. If you already own a different ID,
-   update `package.json` and rebuild before the first release.
+2. Select the registered publisher **Erin Steph** (`ErinSteph`).
 3. In that publisher's **Trusted Publishing** settings, create a policy:
    - Repository owner: `ErinSteph`
    - Repository: `handheld-screen-studio`
@@ -37,8 +35,10 @@ The `author` field and MIT copyright name are Erin Steph.
 6. When ready to submit publicly, dispatch **Publish to VS Code Marketplace**
    with confirmation `PUBLISH`. It publishes a pre-release preview.
 
-No public Marketplace submission has been made merely by preparing these
-files. Do not commit tokens or paste publishing credentials into chat.
+Version 0.2.0 was uploaded through the Marketplace publisher UI on
+15 November 2026; the service initially reported **Verifying**.
+Trusted Publishing remains optional setup for future automated releases.
+Do not commit tokens or paste publishing credentials into chat.
 
 ## Local packaging and rollback
 

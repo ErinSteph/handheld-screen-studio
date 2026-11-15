@@ -1,6 +1,8 @@
 # 0.2.0 — 15 November 2026
 
 - Generic Handheld Screen Studio identity, authored by Erin Steph.
+- Confirmed Marketplace publisher ID `ErinSteph`; 0.2.0 submitted through
+  the publisher dashboard on 15 November 2026.
 - Portable JSON layouts with 17 hardware profiles spanning Game Boy, Color,
   Advance, DS/DSi and 3DS/New 3DS variants.
 - Add named screens and text/rectangle/border/button elements; drag, resize,
