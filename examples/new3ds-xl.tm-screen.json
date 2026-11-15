@@ -1,12 +1,12 @@
 {
   "format": "handheld-screen-layout",
   "version": 1,
-  "title": "HANDHELD DEMO",
+  "title": "STAR POST",
   "device": "new3ds-xl",
   "screens": [
     {
       "id": "home-top",
-      "name": "Demo",
+      "name": "Outpost",
       "display": "top",
       "elements": [
         {
@@ -23,7 +23,7 @@
           "type": "text",
           "x": 8,
           "y": 12,
-          "text": "HANDHELD DEMO",
+          "text": "STAR POST",
           "scale": 2,
           "color": "GOLD"
         },
@@ -41,7 +41,7 @@
           "type": "text",
           "x": 20,
           "y": 50,
-          "text": "SCREEN LAYOUT",
+          "text": "DELIVERY DESK",
           "scale": 1,
           "color": "WHITE"
         },
@@ -50,7 +50,7 @@
           "type": "text",
           "x": 20,
           "y": 68,
-          "text": "EDIT ME VISUALLY",
+          "text": "ROUTE READY",
           "scale": 1,
           "color": "CYAN"
         }
@@ -58,7 +58,7 @@
     },
     {
       "id": "home-bottom",
-      "name": "Demo",
+      "name": "Outpost",
       "display": "bottom",
       "elements": [
         {
@@ -75,7 +75,7 @@
           "type": "text",
           "x": 8,
           "y": 12,
-          "text": "HANDHELD DEMO",
+          "text": "STAR POST",
           "scale": 2,
           "color": "GOLD"
         },
@@ -84,7 +84,7 @@
           "type": "text",
           "x": 12,
           "y": 42,
-          "text": "SELECT AN OPTION",
+          "text": "YOUR NEXT DELIVERY",
           "scale": 1,
           "color": "CYAN"
         },
@@ -95,7 +95,7 @@
           "y": 64,
           "width": 296,
           "height": 28,
-          "text": "PLAY",
+          "text": "START ROUTE",
           "color": "GOLD"
         },
         {
@@ -105,7 +105,7 @@
           "y": 104,
           "width": 296,
           "height": 28,
-          "text": "COLLECTION",
+          "text": "LOGBOOK",
           "color": "GOLD"
         }
       ]

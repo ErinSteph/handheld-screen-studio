@@ -9,3 +9,4 @@ package-lock.json
 .gitignore
 .vscodeignore
 PUBLISHING.md
+docs/**

@@ -7,13 +7,26 @@ Create screen layouts, choose a handheld profile, add screens and elements, and
 drag or resize them beside their JSON source. An additional static C adapter
 can inspect supported GBA and DS drawing functions.
 
+## Screenshots
+
+Star Post is the original example layout included with the extension.
+
+![Star Post layout and visual properties in VS Code](docs/screenshots/star-post.png)
+
+The static C adapter can also inspect an existing project. This project is
+shown with permission for demonstration only; its source, artwork and playable
+builds are not included. Both captures contain only the VS Code window.
+
+![Existing DS project inspected in VS Code](docs/screenshots/native-ds.png)
+
 ## Quick start
 
 1. Open a workspace folder in VS Code.
 2. Run **Handheld Screen Studio: Open Editor** from the Command Palette.
 3. Choose **New handheld layout…** and select a device, or **Open layout…** to
    load an existing `.tm-screen.json` file. The `examples` directory contains
-   original, unbranded starter designs.
+   original **Star Post** starter designs: a tiny fictional space-mail outpost.
+   These are editable layout examples, not a playable game.
 4. Use the screen dropdown to switch between detected views, including top and
    bottom displays. **Add screen…** creates another view in the selected file.
 5. In a portable layout, choose **Add element…** for text, a rectangle, a border
@@ -78,8 +91,10 @@ simple C drawing convention, not a universal C/C++ scene parser.
 
 ## Privacy
 
-The extension contains no telemetry, account sign-in, network requests, game
-branding, ROMs or commercial game artwork. Source and layout edits are disabled
+The extension runtime contains no telemetry, account sign-in or network
+requests. Bundled examples are original Star Post layouts; no existing game
+project, ROM or artwork is bundled. README screenshots of an existing project
+are documentation only. Source and layout edits are disabled
 in untrusted workspaces. Only explicitly selected layout documents or the
 supported local renderer files are edited.
 

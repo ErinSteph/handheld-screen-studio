@@ -1,12 +1,12 @@
 {
   "format": "handheld-screen-layout",
   "version": 1,
-  "title": "HANDHELD DEMO",
+  "title": "STAR POST",
   "device": "gb",
   "screens": [
     {
       "id": "home-main",
-      "name": "Demo",
+      "name": "Outpost",
       "display": "main",
       "elements": [
         {
@@ -23,7 +23,7 @@
           "type": "text",
           "x": 8,
           "y": 12,
-          "text": "HANDHELD DEMO",
+          "text": "STAR POST",
           "scale": 1,
           "color": "GOLD"
         },
@@ -41,7 +41,7 @@
           "type": "text",
           "x": 20,
           "y": 50,
-          "text": "SCREEN LAYOUT",
+          "text": "DELIVERY DESK",
           "scale": 1,
           "color": "WHITE"
         },
@@ -50,7 +50,7 @@
           "type": "text",
           "x": 20,
           "y": 68,
-          "text": "EDIT ME VISUALLY",
+          "text": "ROUTE READY",
           "scale": 1,
           "color": "CYAN"
         }

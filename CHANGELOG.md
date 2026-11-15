@@ -6,8 +6,10 @@
 - Add named screens and text/rectangle/border/button elements; drag, resize,
   edit properties and switch physical displays.
 - Four-shade Game Boy previews and independent 3DS top/bottom dimensions.
-- Original starter layouts, self-contained tests and dependency-locked VSIX
-  packaging. No private game artwork or branding is bundled.
+- Original Star Post starter layouts, self-contained tests and dependency-locked VSIX
+  packaging. No existing game project or artwork is bundled.
+- VS Code window-only README screenshots; existing project shown only in
+  documentation, separately from the bundled Star Post examples.
 - CI validation and a manually dispatched OIDC Marketplace publishing workflow.
 
 # 0.1.0 — 15 November 2026

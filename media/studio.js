@@ -29,7 +29,7 @@ function inspector(){const root=$('inspector');root.replaceChildren();const n=st
  if(n.textIndex!==null&&!n.dynamicText)field('text',n.text??'','text');
  if(state.portable&&n.type==='text')field('scale',n.scale);
  if(n.colorIndex!==null&&state.colorNames.includes(n.args[n.colorIndex]?.text)){const label=el('label','color'),select=el('select');for(const c of state.colorNames){const o=el('option',c);o.value=c;select.append(o);}select.value=n.color;label.append(select);root.append(label);fields.color=select;}
- const button=el('button','Apply to C source');button.disabled=!state.trusted;button.onclick=()=>{const changes={};for(const [name,input]of Object.entries(fields)){const value=['text','color'].includes(name)?input.value:Number(input.value),old=name==='width'?n.w:name==='height'?n.h:n[name];if(value!==old)changes[name]=value;}if(Object.keys(changes).length)edit(changes);};root.append(button);
+ const button=el('button',state.portable?'Apply to layout source':'Apply to C source');button.disabled=!state.trusted;button.onclick=()=>{const changes={};for(const [name,input]of Object.entries(fields)){const value=['text','color'].includes(name)?input.value:Number(input.value),old=name==='width'?n.w:name==='height'?n.h:n[name];if(value!==old)changes[name]=value;}if(Object.keys(changes).length)edit(changes);};root.append(button);
 }
 function point(e){const r=canvas.getBoundingClientRect();return {x:Math.round((e.clientX-r.left)*canvas.width/r.width),y:Math.round((e.clientY-r.top)*canvas.height/r.height)};}
 canvas.onpointerdown=e=>{if(!state)return;const p=point(e);let n=state.scene.nodes.find(n=>n.id===selected);const resize=n?.editable&&n.widthIndex!==null&&n.heightIndex!==null&&Math.abs(p.x-n.x-n.w)<=4&&Math.abs(p.y-n.y-n.h)<=4;

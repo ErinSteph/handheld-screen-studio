@@ -29,7 +29,9 @@ The `author` field and MIT copyright name are Erin Steph.
    - Workflow: `publish.yml`
    - Environment: leave empty (the workflow does not declare one).
 4. Review the example layouts and native adapter behaviour in VS Code. Add
-   screenshots of original sample layouts to the listing if desired.
+   screenshots of Star Post or an existing project to the listing. Existing
+   project screenshots do not grant permission to bundle that project, source
+   or artwork. Capture only the VS Code window.
 5. Verify CI passes. Review the package's file list with `npx vsce ls` and
    install the produced VSIX locally for a final check.
 6. When ready to submit publicly, dispatch **Publish to VS Code Marketplace**
