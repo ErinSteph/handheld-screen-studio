@@ -1,6 +1,6 @@
 # Handheld Screen Studio
 
-**By Erin Steph.** A visual layout editor for Nintendo handheld screens, from
+A visual layout editor for Nintendo handheld screens, from
 the original Game Boy to New Nintendo 3DS XL.
 
 Create screen layouts, choose a handheld profile, add screens and elements, and
