@@ -2,7 +2,7 @@
   "name": "handheld-screen-studio",
   "displayName": "Handheld Screen Studio",
   "description": "Visual layouts for Nintendo handhelds, from Game Boy to New 3DS, plus static C renderer editing.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "ErinSteph",
   "engines": {
     "vscode": "^1.90.0"
@@ -60,5 +60,6 @@
   "preview": true,
   "devDependencies": {
     "@vscode/vsce": "4.1.1"
-  }
+  },
+  "icon": "media/icon.png"
 }

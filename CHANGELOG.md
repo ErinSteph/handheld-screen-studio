@@ -1,3 +1,7 @@
+# 0.2.1 — 15 November 2026
+
+- Add the selected pixel handheld icon to the extension and Marketplace listing.
+
 # 0.2.0 — 15 November 2026
 
 - Generic Handheld Screen Studio identity, authored by Erin Steph.
