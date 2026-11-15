@@ -1,0 +1,114 @@
+{
+  "format": "handheld-screen-layout",
+  "version": 1,
+  "title": "HANDHELD DEMO",
+  "device": "ds",
+  "screens": [
+    {
+      "id": "home-top",
+      "name": "Demo",
+      "display": "top",
+      "elements": [
+        {
+          "id": "background",
+          "type": "box",
+          "x": 0,
+          "y": 0,
+          "width": 256,
+          "height": 192,
+          "color": "INK"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "x": 8,
+          "y": 12,
+          "text": "HANDHELD DEMO",
+          "scale": 2,
+          "color": "GOLD"
+        },
+        {
+          "id": "panel",
+          "type": "border",
+          "x": 12,
+          "y": 38,
+          "width": 232,
+          "height": 132,
+          "color": "PURPLE"
+        },
+        {
+          "id": "label",
+          "type": "text",
+          "x": 20,
+          "y": 50,
+          "text": "SCREEN LAYOUT",
+          "scale": 1,
+          "color": "WHITE"
+        },
+        {
+          "id": "status",
+          "type": "text",
+          "x": 20,
+          "y": 68,
+          "text": "EDIT ME VISUALLY",
+          "scale": 1,
+          "color": "CYAN"
+        }
+      ]
+    },
+    {
+      "id": "home-bottom",
+      "name": "Demo",
+      "display": "bottom",
+      "elements": [
+        {
+          "id": "background",
+          "type": "box",
+          "x": 0,
+          "y": 0,
+          "width": 256,
+          "height": 192,
+          "color": "INK"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "x": 8,
+          "y": 12,
+          "text": "HANDHELD DEMO",
+          "scale": 2,
+          "color": "GOLD"
+        },
+        {
+          "id": "hint",
+          "type": "text",
+          "x": 12,
+          "y": 42,
+          "text": "SELECT AN OPTION",
+          "scale": 1,
+          "color": "CYAN"
+        },
+        {
+          "id": "play",
+          "type": "button",
+          "x": 12,
+          "y": 64,
+          "width": 232,
+          "height": 28,
+          "text": "PLAY",
+          "color": "GOLD"
+        },
+        {
+          "id": "collection",
+          "type": "button",
+          "x": 12,
+          "y": 104,
+          "width": 232,
+          "height": 28,
+          "text": "COLLECTION",
+          "color": "GOLD"
+        }
+      ]
+    }
+  ]
+}

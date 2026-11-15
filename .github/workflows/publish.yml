@@ -1,0 +1,27 @@
+name: Publish to VS Code Marketplace
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type PUBLISH to publish the package version to the Marketplace'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: inputs.confirmation == 'PUBLISH'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run check
+      - run: npx vsce publish --oidc --no-dependencies --pre-release

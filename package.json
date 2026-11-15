@@ -1,0 +1,64 @@
+{
+  "name": "handheld-screen-studio",
+  "displayName": "Handheld Screen Studio",
+  "description": "Visual layouts for Nintendo handhelds, from Game Boy to New 3DS, plus static C renderer editing.",
+  "version": "0.2.0",
+  "publisher": "erinsteph",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension.cjs",
+  "activationEvents": [
+    "onCommand:handheldScreens.open"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "handheldScreens.open",
+        "title": "Handheld Screen Studio: Open Editor"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "handheldScreens.open",
+          "when": "resourceFilename == presentation.h || resourceFilename =~ /\\.tm-screen\\.json$/",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "check": "node --check extension.cjs && node --check source.cjs && node --check layout.cjs && node --check media/studio.js",
+    "package": "vsce package --no-dependencies",
+    "publish:marketplace": "vsce publish --oidc --no-dependencies"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Erin Steph"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ErinSteph/handheld-screen-studio.git"
+  },
+  "homepage": "https://github.com/ErinSteph/handheld-screen-studio#readme",
+  "bugs": {
+    "url": "https://github.com/ErinSteph/handheld-screen-studio/issues"
+  },
+  "keywords": [
+    "gameboy",
+    "gba",
+    "nds",
+    "3ds",
+    "layout",
+    "wysiwyg"
+  ],
+  "preview": true,
+  "devDependencies": {
+    "@vscode/vsce": "4.1.1"
+  }
+}

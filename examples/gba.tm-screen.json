@@ -1,0 +1,60 @@
+{
+  "format": "handheld-screen-layout",
+  "version": 1,
+  "title": "HANDHELD DEMO",
+  "device": "gba",
+  "screens": [
+    {
+      "id": "home-main",
+      "name": "Demo",
+      "display": "main",
+      "elements": [
+        {
+          "id": "background",
+          "type": "box",
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 160,
+          "color": "INK"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "x": 8,
+          "y": 12,
+          "text": "HANDHELD DEMO",
+          "scale": 2,
+          "color": "GOLD"
+        },
+        {
+          "id": "panel",
+          "type": "border",
+          "x": 12,
+          "y": 38,
+          "width": 216,
+          "height": 100,
+          "color": "PURPLE"
+        },
+        {
+          "id": "label",
+          "type": "text",
+          "x": 20,
+          "y": 50,
+          "text": "SCREEN LAYOUT",
+          "scale": 1,
+          "color": "WHITE"
+        },
+        {
+          "id": "status",
+          "type": "text",
+          "x": 20,
+          "y": 68,
+          "text": "EDIT ME VISUALLY",
+          "scale": 1,
+          "color": "CYAN"
+        }
+      ]
+    }
+  ]
+}
