@@ -5,7 +5,7 @@ test('all 17 Nintendo models produce valid editable screens with native logical 
  assert.deepEqual(layout.profile('gb').displays,[{id:'main',width:160,height:144}]);assert.deepEqual(layout.profile('new3ds-xl').displays,[{id:'top',width:400,height:240},{id:'bottom',width:320,height:240}]);
 });
 test('screen creation, unique IDs, additions and drag/resize/text changes round trip',()=>{
- const original=layout.blank('new3ds-xl','MIRAN');let {data,id}=layout.addScreen(original,'Collection','bottom');assert.equal(original.screens.length,2);assert.equal(data.screens.length,3);assert.equal(layout.addScreen(data,'Collection','bottom').id,id+'-2');
+ const original=layout.blank('new3ds-xl','STAR POST');let {data,id}=layout.addScreen(original,'Collection','bottom');assert.equal(original.screens.length,2);assert.equal(data.screens.length,3);assert.equal(layout.addScreen(data,'Collection','bottom').id,id+'-2');
  const added=layout.addElement(data,id,'button');data=layout.change(added.data,id,added.id,{x:28,y:90,width:180,height:30,text:'PLAY'});const screen=layout.scenes(layout.parse(JSON.stringify(data))).find(s=>s.name===id),n=screen.nodes.find(n=>n.id===added.id);assert.equal(n.x,28);assert.equal(n.w,180);assert.equal(n.text,'PLAY');assert.equal(n.type,'button');
 });
 test('GB preview has exactly four shades while GBC supports colour',()=>{assert.equal(new Set(layout.recolor(layout.blank('gb','A'))).size,4);assert.ok(new Set(layout.recolor(layout.blank('gbc','A'))).size>4);});

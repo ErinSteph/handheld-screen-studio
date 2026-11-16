@@ -13,9 +13,8 @@ Star Post is the original example layout included with the extension.
 
 ![Star Post layout and visual properties in VS Code](docs/screenshots/star-post.png)
 
-The static C adapter can also inspect an existing project. This project is
-shown with permission for demonstration only; its source, artwork and playable
-builds are not included. Both captures contain only the VS Code window.
+The static C adapter previews drawing calls from a compatible DS project.
+The pictured project and its assets are not included with the extension.
 
 ![Existing DS project inspected in VS Code](docs/screenshots/native-ds.png)
 
@@ -111,11 +110,11 @@ npm run package
 
 Press F5 in this repository to launch an Extension Development Host, then run
 **Handheld Screen Studio: Open Editor**. Tests are self-contained and require
-no game repository, ROM or private artwork.
+no external game repository, ROM or artwork.
 
 The runtime has no npm dependencies. The packaging tool is a development
-dependency. See [PUBLISHING.md](PUBLISHING.md) for Marketplace setup and release
-steps. This is an early preview; native renderer support is deliberately
+dependency. See [PUBLISHING.md](PUBLISHING.md) for the maintainer release
+process. This is an early preview; native renderer support is deliberately
 limited as described above.
 
 Nintendo and the console names are trademarks of their respective owners.

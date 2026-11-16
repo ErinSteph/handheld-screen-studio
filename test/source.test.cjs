@@ -1,6 +1,6 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const source=require('../source.cjs'),assets=require('../assets.cjs');const root=require('./fixture.cjs')();
-test('discovers real port screens and retains exact argument offsets',()=>{
+test('discovers fixture port screens and retains exact argument offsets',()=>{
  for(const [platform,name]of [['gba','title'],['ds','ds_home_top'],['ds','ds_home_bottom']]){const s=fs.readFileSync(path.join(root,platform,'src/presentation.h'),'utf8'),scene=source.scenes(s,platform).find(f=>f.name===name);assert.ok(scene,name);for(const n of scene.nodes)for(const a of n.args)assert.equal(s.slice(a.start,a.end),a.text);}
 });
 test('patches only selected literals and preserves comments, other calls and string commas',()=>{
@@ -16,7 +16,7 @@ test('source strings, comments and nested calls do not corrupt scene boundaries'
 test('card preview uses native indexed assets and original 5x7 font',()=>{
  for(const platform of ['gba','ds']){const a=assets.load(root,platform);assert.deepEqual(a.glyphs.A,[14,17,17,31,17,17,17]);const data=Buffer.from(a.image('front',0).split(',')[1],'base64');assert.equal(data.subarray(1,4).toString(),'PNG');assert.equal(data.readUInt32BE(16),platform==='gba'?70:96);}
 });
-test('real edit round trip can restore original bytes without touching source files',()=>{
+test('edit round trip can restore original bytes without touching source files',()=>{
  const s=fs.readFileSync(path.join(root,'ds/src/presentation.h'),'utf8'),scene=source.scenes(s,'ds').find(f=>f.name==='ds_home_top'),node=scene.nodes.find(n=>n.name==='dlabel');let next=s;for(const e of source.edits(s,'ds',scene.name,node.id,{x:66,y:8}))next=next.slice(0,e.start)+e.text+next.slice(e.end);const parsed=source.scenes(next,'ds').find(f=>f.name===scene.name).nodes.find(n=>n.name==='dlabel');assert.equal(parsed.x,66);assert.equal(parsed.y,8);for(const e of source.edits(next,'ds',scene.name,parsed.id,{x:node.x,y:node.y}))next=next.slice(0,e.start)+e.text+next.slice(e.end);assert.equal(next,s);
 });
 test('new screen is detected, editable and added before renderer without changing navigation',()=>{
