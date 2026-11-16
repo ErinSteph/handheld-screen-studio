@@ -2,7 +2,7 @@
   "name": "handheld-screen-studio",
   "displayName": "Handheld Screen Studio",
   "description": "Visual handheld layouts, C/C++ drawing previews and readable C source export.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "ErinSteph",
   "engines": {
     "vscode": "^1.90.0"
@@ -12,13 +12,19 @@
   ],
   "main": "./extension.cjs",
   "activationEvents": [
-    "onCommand:handheldScreens.open"
+    "onCommand:handheldScreens.open",
+    "onCommand:handheldScreens.newProject",
+    "workspaceContains:.handheld-project.json"
   ],
   "contributes": {
     "commands": [
       {
         "command": "handheldScreens.open",
         "title": "Handheld Screen Studio: Open Editor"
+      },
+      {
+        "command": "handheldScreens.newProject",
+        "title": "Handheld Screen Studio: New Project"
       }
     ],
     "menus": {

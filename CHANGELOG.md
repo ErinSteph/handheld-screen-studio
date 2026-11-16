@@ -1,3 +1,13 @@
+# 0.6.0 — 16 November 2026
+
+- Start a new SDK project from an empty VS Code window, with an explicit
+  zero-screen option and a visible New project action.
+- Keep New screen usable in empty editors, discover workspace layouts, and
+  open generated projects directly into the screen editor.
+- Export and build zero-screen projects on every platform family.
+- Regenerate managed drawing/navigation files when the project layout is saved,
+  preserving game logic and build settings; stop if generated files were edited.
+
 # 0.5.0 — 16 November 2026
 
 - Add a separate More → Export runnable project action with startup, display

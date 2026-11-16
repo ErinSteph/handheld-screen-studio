@@ -1,10 +1,11 @@
 'use strict';
 const vscode=require('vscode'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const source=require('./source.cjs'),assets=require('./assets.cjs'),layout=require('./layout.cjs'),exporter=require('./export.cjs'),adapters=require('./adapters.cjs'),imageAssets=require('./images.cjs'),projects=require('./project.cjs');
-let panel;
-function activate(context){context.subscriptions.push(vscode.commands.registerCommand('handheldScreens.open',async()=>{
- if(panel){panel.reveal();return;}
- const folders=vscode.workspace.workspaceFolders;if(!folders?.length){vscode.window.showErrorMessage('Open a workspace folder first.');return;}
+let panel,opening=false;
+const syncQueue=new Map();
+function activate(context){context.subscriptions.push(vscode.commands.registerCommand('handheldScreens.newProject',createProject),vscode.workspace.onDidSaveTextDocument(doc=>{queueSync(doc).catch(e=>vscode.window.showErrorMessage(e.message));}));context.subscriptions.push(vscode.commands.registerCommand('handheldScreens.open',async()=>{
+ if(panel){panel.reveal();return;}if(opening)return;opening=true;try{
+ const folders=vscode.workspace.workspaceFolders;if(!folders?.length){await createProject();return;}
  const folder=folders.find(f=>fs.existsSync(path.join(f.uri.fsPath,'ds/src/presentation.h')))||folders[0],root=folder.uri.fsPath;
  const nativeTargets=['ds','gba'].filter(p=>fs.existsSync(path.join(root,p,'src/presentation.h')));
  const discovered=new Map();
@@ -14,6 +15,7 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
  let target=nativeTargets[0]||'layout',layoutDoc=null,sceneName=target==='ds'?'ds_home_top':'title',snapshot=null,refreshTimer;
  const active=vscode.window.activeTextEditor?.document;
  if(active?.uri.fsPath.endsWith('.tm-screen.json')){try{layout.parse(active.getText());layoutDoc=active;target='layout';sceneName='';}catch(e){vscode.window.showErrorMessage(e.message);return;}}
+ if(!layoutDoc){const candidates=await vscode.workspace.findFiles('**/*.tm-screen.json','**/{.git,node_modules,vendor,third_party,build,dist,out}/**',51);const preferred=candidates.find(u=>u.fsPath===path.join(root,'layout.tm-screen.json'));let choice=preferred|| (candidates.length===1?candidates[0]:null);if(!choice&&candidates.length>1){const picked=await vscode.window.showQuickPick(candidates.slice(0,50).map(uri=>({label:vscode.workspace.asRelativePath(uri),uri})),{title:'Open a screen layout'});choice=picked?.uri;}if(choice){layoutDoc=await vscode.workspace.openTextDocument(choice);layout.parse(layoutDoc.getText());target='layout';sceneName='';}}
  const font=JSON.parse(fs.readFileSync(path.join(context.extensionPath,'media/font.json'),'utf8')),cache={};
  const document=()=>target==='layout'?Promise.resolve(layoutDoc):discovered.has(target)?vscode.workspace.openTextDocument(discovered.get(target).uri):vscode.workspace.openTextDocument(vscode.Uri.file(path.join(root,target,'src/presentation.h')));
  const initial=await document();if(initial)await vscode.window.showTextDocument(initial,vscode.ViewColumn.One);
@@ -27,11 +29,11 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
  async function replaceLayout(doc,data){const text=doc.getText(),edit=new vscode.WorkspaceEdit();edit.replace(doc.uri,new vscode.Range(doc.positionAt(0),doc.positionAt(text.length)),JSON.stringify(layout.validate(data),null,2)+'\n');if(!await vscode.workspace.applyEdit(edit))throw Error('Could not update the layout.');}
  async function refresh(){try{
   const doc=await document(),targets=nativeTargets.map(id=>({id,label:id==='ds'?'DS · C renderer':'GBA · C renderer'}));for(const [id,t]of discovered)targets.push({id,label:'C/C++ · '+vscode.workspace.asRelativePath(t.uri)});if(layoutDoc)targets.push({id:'layout',label:'Layout · '+path.basename(layoutDoc.uri.fsPath)});
-  if(!doc){await web.postMessage({type:'empty',message:'Choose More → Scan C/C++ or Adapt drawing function to open project screens, or create a portable layout.',targets});return;}
+  if(!doc){snapshot=null;await web.postMessage({type:'empty',trusted:vscode.workspace.isTrusted,message:'Start with New project, or use New screen to create a layout. Existing projects can be opened or scanned from More.',targets});return;}
   const portable=target==='layout',generic=discovered.has(target),text=doc.getText(),data=portable?layout.parse(text):null,scenes=portable?layout.scenes(data):source.scenes(text,target,configured(doc.uri));
   if(!scenes.some(f=>f.name===sceneName))sceneName=scenes.find(s=>s.name===(target==='ds'?'ds_home_top':'title'))?.name||scenes[0]?.name;
-  if(!scenes.length)throw Error('No drawable screens found.');
-  const selected=scenes.find(f=>f.name===sceneName),images={};let glyphs=font;
+  if(!scenes.length&&!portable)throw Error('No drawable screens found.');
+  const selected=scenes.find(f=>f.name===sceneName)||{name:'',label:'No screens yet',nodes:[],width:layout.profile(data.device).displays[0].width,height:layout.profile(data.device).displays[0].height},images={};let glyphs=font;
   if(!portable&&!generic){cache[target]??=assets.load(root,target);const art=cache[target];glyphs=art.glyphs;for(const n of selected.nodes)if(n.card!==null){const kind=n.type==='art'?'art':'front';images[kind+':'+n.card]=art.image(kind,n.card);}}
   if(portable){const loaded=imageAssets.collect(data,path.dirname(doc.uri.fsPath));for(const [asset,image]of Object.entries(loaded))images['image:'+asset]=image.uri;for(const n of selected.nodes)if(n.type==='image')n.imageKey='image:'+n.asset;}
   if(generic){const bindings=source.textures(text,selected);for(const n of selected.nodes)if(n.type==='image'){const binding=bindings[n.imageBinding];if(!binding||binding.at>n.start){n.editable=false;n.imageError='No unambiguous texture initializer before this call.';continue;}try{const image=imageAssets.load(root,binding.asset);n.w=image.width;n.h=image.height;n.imageKey='texture:'+n.imageBinding;images[n.imageKey]=image.uri;}catch(e){n.imageError=e.message;}}}
@@ -39,13 +41,13 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
   const hardware=portable?layout.profile(data.device):generic?layout.profile(discovered.get(target).device):null;
   snapshot={platform:target,sceneName,version:doc.version};await web.postMessage({type:'snapshot',focusId,...snapshot,trusted:vscode.workspace.isTrusted,file:doc.uri.fsPath,targets,portable,generic,display:generic?(discovered.get(target).display||hardware.displays[0].id):null,hardware,devices:layout.devices,dimensions:portable?{width:selected.width,height:selected.height}:generic?hardware.displays.find(d=>d.id===(discovered.get(target).display||hardware.displays[0].id)):target==='gba'?{width:240,height:160}:{width:256,height:192},scenes:scenes.map(f=>({name:f.name,label:f.label,count:f.nodes.length})),scene:selected,glyphs,images,colors:portable?layout.recolor(data):generic?layout.recolor({device:hardware.id}):source.colors,colorNames:source.names});focusId=null;
  }catch(e){await web.postMessage({type:'error',message:e.message});}}
- async function newLayout(){
+ async function newLayout(firstScreen=false){
   trusted();const device=await vscode.window.showQuickPick(layout.devices.map(p=>({label:p.label,description:p.displays.map(d=>`${d.id} ${d.width}×${d.height}`).join(' · '),id:p.id})),{title:'Choose a Nintendo handheld profile'});if(!device)return;
   const name=await vscode.window.showInputBox({title:'Name this layout',value:'Handheld',validateInput:v=>!v.trim()||v.length>40||/[^\x20-\x7e]/.test(v)?'Use 1–40 printable ASCII characters.':null});if(name===undefined)return;
   const uri=await vscode.window.showSaveDialog({title:'Save handheld screen layout',defaultUri:vscode.Uri.file(path.join(root,'handheld-'+device.id+'.tm-screen.json')),filters:{'Handheld screen layout':['json']}});if(!uri)return;
   if(!uri.fsPath.endsWith('.tm-screen.json'))throw Error('Use a filename ending in .tm-screen.json.');
   try{await vscode.workspace.fs.stat(uri);throw Error('File already exists. Choose a new layout filename.');}catch(e){if(e.code!=='FileNotFound')throw e;}
-  const edit=new vscode.WorkspaceEdit();edit.createFile(uri,{overwrite:false});edit.insert(uri,new vscode.Position(0,0),JSON.stringify(layout.blank(device.id,name),null,2)+'\n');if(!await vscode.workspace.applyEdit(edit))throw Error('Could not create layout.');
+  const edit=new vscode.WorkspaceEdit();edit.createFile(uri,{overwrite:false});edit.insert(uri,new vscode.Position(0,0),JSON.stringify(firstScreen?layout.addScreen(layout.empty(device.id,name),name,layout.profile(device.id).displays[0].id).data:layout.empty(device.id,name),null,2)+'\n');if(!await vscode.workspace.applyEdit(edit))throw Error('Could not create layout.');
   layoutDoc=await vscode.workspace.openTextDocument(uri);target='layout';sceneName='';await showSource(layoutDoc);await refresh();
  }
  async function scanSources(){
@@ -104,15 +106,16 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
   await showSource(doc);await web.postMessage({type:'info',message:'Exported all layout screens. Connect navigation, input and target display integration in your project.'});
  }
  const subscription=web.onDidReceiveMessage(async m=>{try{
-  if(m.type==='ready'||m.type==='refresh'){if(m.type==='ready'&&!layoutDoc&&!nativeTargets.length)await scanSources();await refresh();return;}
+  if(m.type==='ready'||m.type==='refresh'){if(m.type==='ready'&&!layoutDoc&&!nativeTargets.length&&active&&/\.(c|h|cc|hh|cpp|hpp|cxx|hxx)$/.test(active.uri.fsPath))await scanSources();await refresh();return;}
   if(m.type==='adapt'){await adaptDrawing();return;}
   if(m.type==='scan'){await scanSources();return;}
   if(m.type==='exportProject'){await exportProject();return;}
   if(m.type==='export'){await exportSource();return;}
+  if(m.type==='newProject'){trusted();await createProject();return;}
   if(m.type==='newLayout'){await newLayout();return;}
   if(m.type==='openLayout'){const choices=await vscode.window.showOpenDialog({title:'Open a .tm-screen.json layout',canSelectMany:false,filters:{'Screen layout':['json']}});if(!choices?.length)return;const doc=await vscode.workspace.openTextDocument(choices[0]);layout.parse(doc.getText());layoutDoc=doc;target='layout';sceneName='';await showSource(doc);await refresh();return;}
   if(m.type==='scene'){if(!nativeTargets.includes(m.platform)&&!discovered.has(m.platform)&&!(m.platform==='layout'&&layoutDoc))return;target=m.platform;sceneName=String(m.sceneName||'');await refresh();return;}
-  const doc=await document();if(!doc)return;
+  const doc=await document();if(!doc){if(m.type==='add')await newLayout(true);return;}
   if(m.type==='display'){currentSnapshot(m,doc);if(!discovered.has(target))return;const entry=discovered.get(target);if(!layout.profile(entry.device).displays.some(d=>d.id===m.display))throw Error('Unknown display.');entry.display=m.display;await refresh();return;}
   if(m.type==='device'){
    currentSnapshot(m,doc);if(discovered.has(target)){layout.profile(m.device);discovered.get(target).device=m.device;discovered.get(target).display=layout.profile(m.device).displays[0].id;await refresh();return;}trusted();if(target!=='layout')return;const data=layout.parse(doc.getText()),p=layout.profile(m.device);data.device=p.id;
@@ -141,7 +144,7 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
    let result;if(type==='image'){const image=imageAssets.importFile(doc.uri.fsPath,input);result=layout.addImage(layout.parse(doc.getText()),sceneName,image.asset,image.width,image.height);}else result=layout.addElement(layout.parse(doc.getText()),sceneName,type);
    await replaceLayout(doc,result.data);focusId=result.id;await refresh();return;
   }
-  if(m.type==='save'){trusted();await doc.save();return;}
+  if(m.type==='save'){trusted();if(await doc.save()){await queueSync(doc);await web.postMessage({type:'info',message:'Saved. Linked generated project screens are up to date.'});}return;}
   if(m.type==='reveal'){
    const node=target==='layout'?null:source.scenes(doc.getText(),target,configured(doc.uri)).find(f=>f.name===sceneName)?.nodes.find(n=>n.id===m.id);
    const column=current.viewColumn===vscode.ViewColumn.One?vscode.ViewColumn.Two:vscode.ViewColumn.One,editor=await vscode.window.showTextDocument(doc,column);
@@ -156,5 +159,41 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
  }catch(e){await refresh();await web.postMessage({type:'error',message:e.message});}});
  const listener=vscode.workspace.onDidChangeTextDocument(e=>{const uri=target==='layout'?layoutDoc?.uri.fsPath:discovered.has(target)?discovered.get(target).uri.fsPath:path.join(root,target,'src/presentation.h');if(e.document.uri.fsPath===uri||e.document.uri.fsPath===adapterFile(target==='layout'?layoutDoc?.uri:discovered.get(target)?.uri)){clearTimeout(refreshTimer);refreshTimer=setTimeout(refresh,120);}});
  current.onDidDispose(()=>{clearTimeout(refreshTimer);subscription.dispose();listener.dispose();panel=null;});
-}));}
+}finally{opening=false;}
+}));if(vscode.workspace.workspaceFolders?.some(f=>fs.existsSync(path.join(f.uri.fsPath,'.handheld-project.json'))))vscode.commands.executeCommand('handheldScreens.open');}
+async function createProject(){
+ if(!vscode.workspace.isTrusted)throw Error('Trust this workspace before creating project files.');
+ const device=await vscode.window.showQuickPick(layout.devices.map(p=>({label:p.label,id:p.id})),{title:'New handheld project — choose platform'});if(!device)return;
+ const name=await vscode.window.showInputBox({title:'New project name',value:'Handheld',validateInput:v=>!v.trim()||v.length>40||/[^\x20-\x7e]/.test(v)?'Use 1–40 printable ASCII characters.':null});if(name===undefined)return;
+ const starter=await vscode.window.showQuickPick([{label:'Empty project',description:'No screens; add your first screen in the editor.',id:'empty'},{label:'Starter layout',description:'A Home screen for each display, with background and title.',id:'starter'}],{title:'Choose the starting point'});if(!starter)return;
+ const data=starter.id==='empty'?layout.empty(device.id,name):layout.blank(device.id,name),result=projects.project(data);
+ const base=vscode.workspace.workspaceFolders?.[0]?.uri.fsPath||require('node:os').homedir();
+ const uri=await vscode.window.showSaveDialog({title:'Create project in a NEW folder',saveLabel:'Create project',defaultUri:vscode.Uri.file(path.join(base,'handheld-'+result.target+'-project'))});if(!uri)return;if(uri.scheme!=='file')throw Error('Choose a local folder.');
+ try{fs.mkdirSync(uri.fsPath);}catch(e){if(e.code==='EEXIST')throw Error('Choose a new folder name. Existing folders are never overwritten.');throw e;}
+ for(const [name,text]of Object.entries(result.files)){const file=path.join(uri.fsPath,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text,{flag:'wx'});}
+ await vscode.commands.executeCommand('vscode.openFolder',uri,{forceNewWindow:true});
+}
+function queueSync(doc){if(path.basename(doc.uri.fsPath)!=='layout.tm-screen.json'||!vscode.workspace.isTrusted)return Promise.resolve();const key=doc.uri.toString(),next=(syncQueue.get(key)||Promise.resolve()).catch(()=>{}).then(()=>syncProject(doc));syncQueue.set(key,next);next.finally(()=>{if(syncQueue.get(key)===next)syncQueue.delete(key);}).catch(()=>{});return next;}
+async function syncProject(doc){
+ const folder=path.dirname(doc.uri.fsPath),file=path.join(folder,'.handheld-project.json');if(!fs.existsSync(file)||doc.isDirty)return;
+ if(fs.statSync(file).size>32768)throw Error('Project generation metadata is too large.');
+ const metaRelative=path.relative(fs.realpathSync(folder),fs.realpathSync(file));if(metaRelative.startsWith('..'+path.sep)||metaRelative==='..'||path.isAbsolute(metaRelative))throw Error('Project metadata must stay inside the project folder.');
+ const metadataDoc=await vscode.workspace.openTextDocument(vscode.Uri.file(file)),previous=JSON.parse(metadataDoc.getText()),data=layout.parse(doc.getText()),images=imageAssets.collect(data,folder),next=projects.project(data,images),meta=JSON.parse(next.files['.handheld-project.json']);
+ const documents=new Map(),versions=new Map([[doc,doc.version],[metadataDoc,metadataDoc.version]]);
+ for(const name of new Set([...Object.keys(previous.generated||{}),...Object.keys(meta.generated)])){
+  if(!projects.managed(name))throw Error('Invalid generated file path.');const target=path.join(folder,name),cached=vscode.workspace.textDocuments.find(d=>d.uri.fsPath===target);const parentRelative=path.relative(fs.realpathSync(folder),fs.realpathSync(path.dirname(target)));if(parentRelative.startsWith('..'+path.sep)||parentRelative==='..'||path.isAbsolute(parentRelative))throw Error('Generated files must stay inside their project folder.');if(cached){documents.set(name,cached);versions.set(cached,cached.version);}if(!fs.existsSync(target))continue;
+  const relative=path.relative(fs.realpathSync(folder),fs.realpathSync(target));if(relative.startsWith('..'+path.sep)||relative==='..'||path.isAbsolute(relative))throw Error('Generated files must stay inside their project folder.');
+  const sourceDoc=await vscode.workspace.openTextDocument(vscode.Uri.file(target));documents.set(name,sourceDoc);versions.set(sourceDoc,sourceDoc.version);
+ }
+ const plan=projects.syncPlan(data,images,previous,name=>documents.get(name)?.getText());if(!Object.keys(plan.writes).length&&!plan.deletes.length)return;
+ for(const [document,version]of versions)if(document.version!==version)throw Error('Project files changed during generation. Save the layout again to retry.');
+ const edit=new vscode.WorkspaceEdit(),save=[];for(const [name,text]of Object.entries(plan.writes)){
+  const uri=vscode.Uri.file(path.join(folder,name)),document=name==='.handheld-project.json'?metadataDoc:documents.get(name);
+  if(document)edit.replace(uri,new vscode.Range(document.positionAt(0),document.positionAt(document.getText().length)),text);else{edit.createFile(uri,{overwrite:false});edit.insert(uri,new vscode.Position(0,0),text);}save.push(uri);
+ }
+ for(const name of plan.deletes)edit.deleteFile(vscode.Uri.file(path.join(folder,name)));
+ if(!await vscode.workspace.applyEdit(edit))throw Error('Could not update generated project screens.');
+ for(const uri of save){const document=await vscode.workspace.openTextDocument(uri);if(!await document.save())throw Error('Save the generated project files before building.');}
+}
+
 module.exports={activate,deactivate(){panel?.dispose();}};

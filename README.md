@@ -20,21 +20,39 @@ The pictured project and its assets are not included with the extension.
 
 ## Quick start
 
-1. Open a game project in VS Code and run **Handheld Screen Studio: Open Editor**.
-2. Choose a detected source file and screen. Use **More… → Scan C/C++…** to
-   scan again or select another drawing file.
-3. Drag elements on the canvas or edit their properties, then **Save**. The
-   preview fits the available width by default; Zoom and Grid are optional.
-4. **New screen…** adds a blank view to a portable layout, or copies the
-   selected source function as a starting point in the same source file.
-5. **More…** contains project adaptation, portable layouts and source export.
-   These actions stay out of the main screen-editing toolbar.
+**Starting from nothing:** run **Handheld Screen Studio: New Project** from
+VS Code's command palette, or click **New project…** in the editor. Choose a
+handheld, project name, **Empty project** or **Starter layout**, and a new folder.
+No existing project or screen is required. An empty project contains **zero
+screens** and can already build a blank display.
+
+The new folder opens with Screen Studio and its included layout. Click
+**New screen…** to create the first screen, add elements, then **Save** and run
+**Build handheld project**. Saving updates the generated drawing files and
+screen navigation in that same folder, so repeated exports are unnecessary.
+Game logic in `source/main.c` and build settings are preserved.
+
+**Editing an existing project:** run **Handheld Screen Studio: Open Editor**.
+A layout in the workspace is discovered automatically; otherwise use
+**More… → Open layout…** or **Scan C/C++…**. Select a screen, drag elements or edit
+properties, then Save. The preview fits the available width by default.
+**New screen…** can also start a layout when no source is open.
+
+**More…** contains project adaptation, layouts and separate source/project
+export. **New portable layout…** creates screen-design data without SDK files;
+it can start with no screens and still be exported. Runnable projects include
+their own portable layout alongside generated C.
+
+Files created by version 0.6 and later include `.handheld-project.json` to track
+which screen files the editor generated. If one of those files is edited
+manually, regeneration stops with an explanation rather than replacing it.
+Use `source/main.c` for custom game code. Older exported projects can be
+exported once to a new folder to enable linked regeneration; existing folders
+are never overwritten.
 
 The `examples` directory contains the original **Star Post** layouts and a
-raylib drawing example. They are screen-design examples, not a playable game.
-
-All edits use VS Code's undo stack. The source pane stays editable, and the
-preview follows valid source changes. Version checks refuse stale edits.
+raylib drawing example. All editor changes use VS Code's undo stack; version
+checks refuse stale edits.
 
 ## Handheld profiles
 
@@ -153,9 +171,8 @@ visuals and require game-specific actions and touch hitboxes.
 
 GB screens are rasterized into banked 2bpp tiles with four shades. GBC screens
 use one four-color palette per screen, quantized from the layout. More than
-256 unique tiles on a screen prevents export with an explanation. GB/GBC edits
-can be regenerated from the included layout; the ARM projects also include
-editable C drawing functions in `source/layout.c`. These initial templates
+256 unique tiles on a screen prevents export with an explanation. GB/GBC tiles regenerate when the included layout is saved; ARM projects
+update the generated C drawing functions in `source/layout.c`. These initial templates
 prioritize displaying layouts over animated or hardware-optimized rendering.
 
 GBA uses 153,600 bytes for its software buffer in EWRAM; DS uses 196,608 bytes
@@ -262,7 +279,8 @@ requests. Bundled examples are original Star Post layouts; no existing game
 project, ROM or artwork is bundled. README screenshots of an existing project
 are documentation only. Source and layout edits are disabled
 in untrusted workspaces. Edits affect selected layout/source documents, explicitly created source/project exports and workspace drawing maps. PNG import also copies selected images into the layout
-asset folder. Referenced PNGs are read locally. Source scanning reads only the
+asset folder. Linked projects update only their hash-checked generated screen
+files and project metadata on layout save. Referenced PNGs are read locally. Source scanning reads only the
 bounded set of workspace files described above.
 
 Nintendo and the console names are trademarks of their respective owners.
