@@ -24,4 +24,4 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm test
       - run: npm run check
-      - run: npx vsce publish --oidc --no-dependencies --pre-release
+      - run: npx vsce publish --oidc --pre-release

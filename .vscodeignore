@@ -2,7 +2,7 @@
 .vscode/**
 .git/**
 test/**
-node_modules/**
+node_modules/pngjs/browser.js
 package-lock.json
 *.vsix
 *.log

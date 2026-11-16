@@ -53,6 +53,15 @@
           "text": "ROUTE READY",
           "scale": 1,
           "color": "CYAN"
+        },
+        {
+          "id": "image",
+          "type": "image",
+          "x": 200,
+          "y": 8,
+          "width": 24,
+          "height": 18,
+          "asset": "star-post.assets/stamp.png"
         }
       ]
     }

@@ -1,3 +1,20 @@
+# 0.4.0 — 16 November 2026
+
+- Keep screen editing primary: New screen and Save stay visible; adaptation,
+  scanning, layouts and export move to More. Preview details are collapsible
+  and the canvas fits the available width.
+- Adapt simple local drawing helpers automatically, including reordered
+  arguments and constant defaults, without changing helper implementations.
+- Add project-local drawing API mappings for unfamiliar text/rectangle calls.
+- Create new source screens from the selected function while preserving its
+  signature, scope and local logic.
+
+- Import local PNG images into portable layouts, edit their size and position,
+  and embed RGBA pixels in standalone C exports.
+- Add duplicate, delete, centering and portable layer-order controls; reuse
+  existing drawing calls when adding source elements.
+- Preview simple raylib texture bindings and move literal texture positions.
+
 # 0.3.0 — 16 November 2026
 
 - Export portable layouts as complete standalone C99 drawing code or compatible
