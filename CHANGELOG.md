@@ -1,3 +1,13 @@
+# 0.3.0 — 16 November 2026
+
+- Export portable layouts as complete standalone C99 drawing code or compatible
+  functions for an existing supported GBA/DS renderer.
+- Scan workspace C/C++ source and headers for supported drawing calls, including
+  raylib, sf2d, Citro2D rectangles and DS gl2d rectangles.
+- Detect functions within C++ namespaces/classes and distinguish duplicate names.
+- Choose the preview device/display for scanned sources. Dynamic and endpoint
+  arguments remain locked; previews state their limits.
+
 # 0.2.3 — 16 November 2026
 
 - Simplify user documentation.

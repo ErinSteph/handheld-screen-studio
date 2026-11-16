@@ -1,8 +1,8 @@
 {
   "name": "handheld-screen-studio",
   "displayName": "Handheld Screen Studio",
-  "description": "Visual layouts for Nintendo handhelds, from Game Boy to New 3DS, plus static C renderer editing.",
-  "version": "0.2.3",
+  "description": "Visual handheld layouts, C/C++ drawing previews and readable C source export.",
+  "version": "0.3.0",
   "publisher": "ErinSteph",
   "engines": {
     "vscode": "^1.90.0"
@@ -33,7 +33,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.cjs",
-    "check": "node --check extension.cjs && node --check source.cjs && node --check layout.cjs && node --check media/studio.js",
+    "check": "node --check extension.cjs && node --check source.cjs && node --check layout.cjs && node --check media/studio.js && node --check detection.cjs && node --check export.cjs",
     "package": "vsce package --no-dependencies",
     "publish:marketplace": "vsce publish --oidc --no-dependencies"
   },

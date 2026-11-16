@@ -1,31 +1,34 @@
 'use strict';
+const detection=require('./detection.cjs');
 // Offset-preserving C lexer: comments and strings never become executable code.
 function lex(s) {
- const out=[]; const re=/\s+|\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[A-Za-z_]\w*|\d+|./gy; let m;
- while((m=re.exec(s))) {const t=m[0];if(/^\s|^\/\*|^\/\//.test(t))continue;out.push({text:t,start:m.index,end:re.lastIndex});}return out;
+ const out=[]; const re=/(?:u8|u|U|L)?R"([^ ()\\\t\r\n]{0,16})\([\s\S]*?\)\1"|\s+|\/\*[\s\S]*?(?:\*\/|$)|\/\/[^\n]*|"(?:\\.|[^"\\])*(?:"|$)|'(?:\\.|[^'\\])*'|[A-Za-z_]\w*|\d+|./gy; let m;
+ while(re.lastIndex<s.length) {const at=re.lastIndex;m=re.exec(s);if(!m)break;if(/^(?:u8|u|U|L)?R"/.test(s.slice(at))&&!m[0].includes(")"))break;const t=m[0];if(/^\s|^\/\*|^\/\//.test(t))continue;out.push({text:t,start:m.index,end:re.lastIndex});}return out;
 }
 function close(tokens,i,open='(',end=')') {let depth=0;for(let j=i;j<tokens.length;j++){if(tokens[j].text===open)depth++;if(tokens[j].text===end&&!--depth)return j;}return -1;}
 function functions(s) {
  const t=lex(s),out=[];let depth=0;
  for(let i=0;i<t.length;i++){
-  if(!depth&&/^[A-Za-z_]\w*$/.test(t[i].text)&&t[i+1]?.text==='('){const j=close(t,i+1);if(j>=0&&t[j+1]?.text==='{'){const k=close(t,j+1,'{','}');if(k<0)break;out.push({name:t[i].text,start:t[j+1].end,end:t[k].start,signatureStart:t[i].start});i=k;continue;}}
+  if(/^[A-Za-z_]\w*$/.test(t[i].text)&&!['if','for','while','switch','catch'].includes(t[i].text)&&t[i+1]?.text==='('){const j=close(t,i+1);let body=j+1;while(j>=0&&['const','volatile','override','final','noexcept'].includes(t[body]?.text)){const qualifier=t[body++].text;if(qualifier==='noexcept'&&t[body]?.text==='('){const end=close(t,body);if(end<0)break;body=end+1;}}if(j>=0&&t[body]?.text==='{'){const k=close(t,body,'{','}');if(k<0)break;out.push({name:t[i].text,start:t[body].end,end:t[k].start,signatureStart:t[i].start});i=k;continue;}}
   if(t[i].text==='{')depth++;if(t[i].text==='}')depth--;
  }return out;
 }
-const primitives=new Set(['box','border','panel','line','text','label','tiny','wrap','front','art','dbox','dborder','dline','dtext','dlabel','dtiny','dwrap','dfront','dart','dbutton']);
+const primitives=new Set(['box','border','panel','line','text','label','tiny','wrap','front','art','dbox','dborder','dline','dtext','dlabel','dtiny','dwrap','dfront','dart','dbutton',...Object.keys(detection.apis)]);
 const literalNumber=s=>/^-?\d+$/.test(s.trim())?Number(s.trim()):null;
-function literalString(s){if(!/^"(?:\\.|[^"\\])*"$/.test(s.trim()))return null;try{return JSON.parse(s.trim());}catch{return null;}}
+function literalString(s){if(!/^"(?:\\.|[^"\\])*(?:"|$)$/.test(s.trim()))return null;try{return JSON.parse(s.trim());}catch{return null;}}
 function calls(s,fn){
  const t=lex(s.slice(fn.start,fn.end)).map(v=>({...v,start:v.start+fn.start,end:v.end+fn.start}));const out=[];
  for(let i=0;i<t.length;i++)if(primitives.has(t[i].text)&&t[i+1]?.text==='('){const end=close(t,i+1);if(end<0)continue;let start=i+2,depth=0;const args=[];
   function arg(a,b){if(a>=b)return;args.push({start:t[a].start,end:t[b-1].end,text:s.slice(t[a].start,t[b-1].end)});}
   for(let j=i+2;j<end;j++){const x=t[j].text;if(['(','[','{'].includes(x))depth++;if([')',']','}'].includes(x))depth--;if(x===','&&!depth){arg(start,j);start=j+1;}}arg(start,end);
-  if(args.length>=2)out.push({id:String(t[i].start),name:t[i].text,start:t[i].start,end:t[end].end,args,source:s.slice(t[i].start,t[end].end),line:s.slice(0,t[i].start).split('\n').length});i=end;
+  const api=detection.apis[t[i].text],arity=api?1+Math.max(...Object.values(api).filter(v=>typeof v==='number')):null;
+  if(args.length>=2&&(!api||args.length===arity))out.push({id:String(t[i].start),name:t[i].text,start:t[i].start,end:t[end].end,args,source:s.slice(t[i].start,t[end].end),line:s.slice(0,t[i].start).split('\n').length});i=end;
  }return out;
 }
 const names=['INK','WHITE','GOLD','PINK','ROSE','GREEN','CYAN','RED','MUTED','PURPLE','DARK','BLUE','CREAM','ORANGE','GREY','SHADOW'];
 const colors=['#080510','#fff7e7','#ffce52','#f718a5','#ff7bb5','#5af78c','#63efff','#ff395a','#a5a5bd','#5a186b','#180829','#214a52','#f7e7c6','#ff9431','#5a5273','#000008'];
 function describe(c,platform){
+ const external=detection.describe(c,names,literalNumber,literalString);if(external)return external;
  const a=c.args.map(a=>a.text),nums=a.map(literalNumber),type=c.name.replace(/^d(?=box|border|line|text|label|tiny|wrap|front|art|button)/,'');
  const isText=['text','label','tiny','wrap'].includes(type),isImage=['front','art'].includes(type),isRect=['box','border','panel','button'].includes(type);
  const textIndex=isText?2:type==='button'?4:null;let w,h,scale=isText&&type!=='wrap'&&type!=='tiny'?(nums[4]??1):1;
@@ -41,10 +44,10 @@ function describe(c,platform){
  heightIndex:(isRect||(isImage&&!(platform==='gba'&&type==='front')))?3:null,
  card:isImage?(nums[platform==='gba'&&type==='front'?2:4]??0):null};
 }
-function scenes(s,platform){return functions(s).map(f=>({...f,calls:calls(s,f)})).filter(f=>f.calls.length&& !['box','border','line','text','label','tiny','wrap','front','art','panel','dbox','dborder','dline','dtext','dlabel','dtiny','dwrap','dfront','dart','dbutton','dimage','card','dcard','pixel','dpixel','dcenter_label'].includes(f.name)).map(f=>({...f,nodes:f.calls.map(c=>describe(c,platform)),procedural:/\b(for|if|while|switch)\s*\(/.test(s.slice(f.start,f.end))}));}
+function scenes(s,platform){const result=functions(s).map(f=>({...f,calls:calls(s,f)})).filter(f=>f.calls.length&& !['box','border','line','text','label','tiny','wrap','front','art','panel','dbox','dborder','dline','dtext','dlabel','dtiny','dwrap','dfront','dart','dbutton','dimage','card','dcard','pixel','dpixel','dcenter_label',...Object.keys(detection.apis)].includes(f.name)).map(f=>({...f,nodes:f.calls.map(c=>describe(c,platform)),procedural:/\b(for|if|while|switch)\s*\(/.test(s.slice(f.start,f.end))}));const counts=new Map();for(const f of result)counts.set(f.name,(counts.get(f.name)||0)+1);return result.map(f=>counts.get(f.name)>1?{...f,label:f.name+' · line '+s.slice(0,f.start).split('\n').length,name:f.name+'__at_'+f.start}:f);}
 function edits(s,platform,sceneName,id,changes){
  const scene=scenes(s,platform).find(f=>f.name===sceneName),node=scene?.nodes.find(n=>n.id===id);if(!node||!node.editable)throw Error('This call is dynamic or no longer exists. Refresh the screen.');
- const changesOut=[];const map={x:0,y:1,width:node.widthIndex,height:node.heightIndex,color:node.colorIndex,text:node.textIndex};
+ const changesOut=[];const map={x:node.xIndex??0,y:node.yIndex??1,width:node.widthIndex,height:node.heightIndex,color:node.colorIndex,text:node.textIndex};
  for(const [key,value]of Object.entries(changes)){
   const idx=map[key];if(idx===undefined||idx===null||!node.args[idx])throw Error('Unsupported property: '+key);let replacement;
   if(key==='text'){if(node.dynamicText||typeof value!=='string'||value.length>500||/[^\x20-\x7e\n]/.test(value))throw Error('Only existing ASCII string literals can be edited.');replacement=JSON.stringify(value);}

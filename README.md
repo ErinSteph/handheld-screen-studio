@@ -4,8 +4,8 @@ A visual layout editor for Nintendo handheld screens, from
 the original Game Boy to New Nintendo 3DS XL.
 
 Create screen layouts, choose a handheld profile, add screens and elements, and
-drag or resize them beside their JSON source. An additional static C adapter
-can inspect supported GBA and DS drawing functions.
+drag or resize them beside their JSON source. Scan C/C++ drawing functions, edit supported literal calls, and export layouts
+as readable C source.
 
 ## Screenshots
 
@@ -28,7 +28,9 @@ The pictured project and its assets are not included with the extension.
    These are editable layout examples, not a playable game.
 4. Use the screen dropdown to switch between detected views, including top and
    bottom displays. **Add screen…** creates another view in the selected file.
-5. In a portable layout, choose **Add element…** for text, a rectangle, a border
+5. **Scan C/C++…** discovers supported drawing functions across the workspace.
+   Select a source file, then choose a function in the screen dropdown.
+6. In a portable layout, choose **Add element…** for text, a rectangle, a border
    or a button. Drag on the canvas, resize using the lower-right handle, or use
    the property inspector. **Save source** saves the document.
 
@@ -59,14 +61,62 @@ Screen dimensions follow [Pan Docs](https://gbdev.io/pandocs/),
 
 Portable `.tm-screen.json` files contain a device ID and named screens with
 display assignments and drawing elements. They are intentionally separate from
-any game's runtime code. A renderer/export adapter is needed to use a layout
-in an actual game. Changing a profile changes the preview canvas; it does not
+any game's runtime code. Use **Export source…** to generate C drawing code. Target SDK integration
+is still needed to use the result in an actual game. Changing a profile changes the preview canvas; it does not
 rescale elements or automatically optimise them for that hardware.
 
 Game Boy layouts map colours to four shades in the preview. The other profiles
 use an illustrative named palette. This is not a hardware-accurate emulator.
 
-## Static C renderer adapter
+## Export source
+
+Open a portable layout and select **Export source…**. All screens in the layout
+are written to a new source file; existing files are never overwritten.
+
+- **Standalone C99 renderer:** complete drawing code, named screen functions,
+  palette, preview font, screen metadata and an `hss_render()` entry point.
+  Supply a `uint32_t` pixel buffer with the screen's exact dimensions. The
+  result uses `0xRRGGBB` pixels and compiles without a graphics library. Connect
+  the buffer to the target SDK's display or replace the drawing backend.
+- **Existing GBA/DS renderer functions:** offered when the workspace contains a
+  matching supported renderer and the layout uses that device family. The
+  exporter checks for five-argument box, border and text functions and emits
+  calls to them. Include the result after those functions and the palette.
+  Host fonts and colors may differ; text scales above two are rejected.
+
+Both exports preserve named screens, drawing order, literal positions, text
+and supported shapes. Buttons export their visuals; navigation, input hitboxes,
+display selection and build setup remain part of the game. Standalone C is a
+software renderer, not a console ROM or complete SDK application. Its pixel
+buffer uses four bytes per pixel, so small devices may need a tiled or indexed
+backend. No stereo or hardware resource budgeting is generated.
+
+## C/C++ source discovery
+
+**Scan C/C++…** searches up to 200 source/header files, at most 512 KiB per file
+and 16 MiB total. Common build, dependency and version-control directories are
+excluded. The scan is static: it never runs game code, evaluates expressions or
+invokes a compiler. C++ namespaces, simple class methods and duplicate function
+names are supported; this is not a complete C++ parser.
+
+| Drawing convention | Recognised calls |
+| --- | --- |
+| Simple GBA/DS C renderer | `box`, `border`, `text`, `label` and the supported primitives below |
+| [raylib](https://github.com/raysan5/raylib/blob/master/src/raylib.h) | `DrawRectangle`, `DrawRectangleLines`, `DrawText`, `DrawLine` |
+| [sf2d](https://github.com/xerpi/sf2dlib/blob/master/libsf2d/include/sf2d.h) | `sf2d_draw_rectangle`, `sf2d_draw_line` |
+| [Citro2D](https://github.com/devkitPro/citro2d/blob/master/include/c2d/base.h) | `C2D_DrawRectSolid` |
+| [DS gl2d](https://github.com/devkitPro/libnds/blob/master/include/gl2d.h) | `glBoxFilled`, `glBox` |
+
+Choose the preview device and display manually for scanned sources. Fonts,
+colors and depth are approximate; the scan does not infer the game's render
+state. Endpoint-based calls remain read-only. Literal arguments can be edited
+where their meaning is known. Dynamic positions and runtime text remain locked.
+Loops appear once, all branches are included, helper calls are not expanded,
+and unknown APIs or complex structures are omitted. In particular, tilemaps,
+sprites, arbitrary SDL rectangles and structured Citro2D text are not imported.
+Detected source is edited directly; it is not automatically converted to JSON.
+
+## Native GBA/DS renderer adapter
 
 For workspaces with `gba/src/presentation.h` or `ds/src/presentation.h`, the
 editor discovers supported drawing functions automatically. It recognises the
@@ -85,8 +135,8 @@ simple C drawing convention, not a universal C/C++ scene parser.
 - **Adding a C screen creates a function; navigation must be wired separately.**
   Moving DS drawing calls does not move input hitboxes.
 - Verify the compiled game in an emulator. This extension does not compile,
-  emulate or publish a game and does not directly edit arbitrary GB/3DS SDK
-  renderers. Use portable layouts for those platforms.
+  emulate or publish a game. Broader source scanning supports only the explicit
+  call conventions listed above.
 
 ## Privacy
 
@@ -94,8 +144,9 @@ The extension runtime contains no telemetry, account sign-in or network
 requests. Bundled examples are original Star Post layouts; no existing game
 project, ROM or artwork is bundled. README screenshots of an existing project
 are documentation only. Source and layout edits are disabled
-in untrusted workspaces. Only explicitly selected layout documents or the
-supported local renderer files are edited.
+in untrusted workspaces. Only selected layout documents, selected drawing source files and the
+supported native renderer files are edited. Source scanning reads only the
+bounded set of workspace files described above.
 
 Nintendo and the console names are trademarks of their respective owners.
 This independent tool is not affiliated with or endorsed by Nintendo.
