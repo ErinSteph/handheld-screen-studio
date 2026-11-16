@@ -1,6 +1,10 @@
+# 0.2.3 — 16 November 2026
+
+- Simplify user documentation.
+
 # 0.2.2 — 16 November 2026
 
-- Clarify the README, changelog and maintainer release guide.
+- Clarify screen-layout documentation.
 - Keep example layouts and test labels independent of external game projects.
 
 # 0.2.1 — 15 November 2026
@@ -15,10 +19,8 @@
 - Add named screens and text/rectangle/border/button elements; drag, resize,
   edit properties and switch physical displays.
 - Four-shade Game Boy previews and independent 3DS top/bottom dimensions.
-- Original Star Post starter layouts, self-contained tests and dependency-locked VSIX
-  packaging. No existing game project or artwork is bundled.
+- Include original Star Post starter layouts.
 - Add editor screenshots to the README. The pictured DS project is not bundled.
-- CI validation and a manually dispatched OIDC Marketplace publishing workflow.
 
 # 0.1.0 — 15 November 2026
 

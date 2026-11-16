@@ -8,5 +8,4 @@ package-lock.json
 *.log
 .gitignore
 .vscodeignore
-PUBLISHING.md
 docs/**

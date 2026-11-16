@@ -97,25 +97,5 @@ are documentation only. Source and layout edits are disabled
 in untrusted workspaces. Only explicitly selected layout documents or the
 supported local renderer files are edited.
 
-## Development
-
-Use Node.js 22 or newer:
-
-```sh
-npm ci
-npm test
-npm run check
-npm run package
-```
-
-Press F5 in this repository to launch an Extension Development Host, then run
-**Handheld Screen Studio: Open Editor**. Tests are self-contained and require
-no external game repository, ROM or artwork.
-
-The runtime has no npm dependencies. The packaging tool is a development
-dependency. See [PUBLISHING.md](PUBLISHING.md) for the maintainer release
-process. This is an early preview; native renderer support is deliberately
-limited as described above.
-
 Nintendo and the console names are trademarks of their respective owners.
 This independent tool is not affiliated with or endorsed by Nintendo.
