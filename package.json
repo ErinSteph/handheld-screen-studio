@@ -2,7 +2,7 @@
   "name": "handheld-screen-studio",
   "displayName": "Handheld Screen Studio",
   "description": "Visual handheld layouts, C/C++ drawing previews and readable C source export.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "ErinSteph",
   "engines": {
     "vscode": "^1.90.0"
@@ -33,7 +33,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.cjs",
-    "check": "node --check extension.cjs && node --check source.cjs && node --check layout.cjs && node --check media/studio.js && node --check detection.cjs && node --check export.cjs && node --check adapters.cjs && node --check images.cjs",
+    "check": "node --check extension.cjs && node --check source.cjs && node --check layout.cjs && node --check media/studio.js && node --check detection.cjs && node --check export.cjs && node --check adapters.cjs && node --check images.cjs && node --check project.cjs && node --check raster.cjs",
     "package": "vsce package",
     "publish:marketplace": "vsce publish --oidc"
   },

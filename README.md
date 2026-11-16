@@ -49,8 +49,10 @@ preview follows valid source changes. Version checks refuse stale edits.
 
 XL and hardware revisions share their family's logical layout resolution.
 The 3DS preview represents one 2D eye view; it does not simulate stereoscopic
-depth. These are **screen-design profiles**, not ROM export targets. Tile,
-sprite, palette-bank, VRAM and other hardware budgets are not validated.
+depth. The profiles select logical screen sizes. Runnable project export maps them to
+the family targets below; hardware revisions do not get separate SDK backends.
+General sprite, palette-bank and VRAM budgets are not validated; the GB project
+backend separately checks its supported tile limit.
 
 Screen dimensions follow [Pan Docs](https://gbdev.io/pandocs/),
 [GBATEK](https://mgba-emu.github.io/gbatek/), and
@@ -119,6 +121,49 @@ display selection and build setup remain part of the game. Standalone C is a
 software renderer, not a console ROM or complete SDK application. Its pixel
 buffer uses four bytes per pixel, so small devices may need a tiled or indexed
 backend. No stereo or hardware resource budgeting is generated.
+
+## Export a runnable project
+
+Choose **More… → Export runnable project…** while editing a portable layout.
+Select a **new folder**; existing folders are never overwritten. This export
+includes startup code, display integration, the screen renderer, a main loop,
+previous/next-page controls, a Makefile, a VS Code build task and the original
+layout with its PNG assets. The ordinary **Export source…** action remains
+available when only drawing code is needed.
+
+| Selected profile | Toolchain | Build output |
+| --- | --- | --- |
+| Game Boy, Pocket, Light | [GBDK 2020](https://gbdk.org/docs/api/docs_getting_started.html) | `handheld.gb` |
+| Game Boy Color | GBDK 2020 | `handheld.gbc` |
+| GBA, SP, Micro | [devkitPro gba-dev](https://devkitpro.org/wiki/Getting_Started) | `handheld.gba` |
+| DS/Lite, DSi/XL | devkitPro nds-dev | `handheld.nds` |
+| 3DS/XL, 2DS, New variants | devkitPro 3ds-dev | `handheld.3dsx` |
+
+Install the appropriate SDK and GNU Make, open the exported folder, and run
+**Terminal → Run Build Task → Build handheld project**, or `make`. For GBDK,
+set `GBDK_HOME`; for devkitPro, set `DEVKITPRO` and `DEVKITARM`. The exported
+README contains the commands and controls. Export itself does not install SDKs,
+execute a build, download tools or launch an emulator.
+
+**Right/A** advances to the next page; **Left/B** returns to the previous page.
+On dual-screen devices, each display cycles through its own screens in layout
+order. An unused display stays black. **START** exits the 3DS application to the
+Homebrew Launcher. Add gameplay in `source/main.c`; button elements still draw
+visuals and require game-specific actions and touch hitboxes.
+
+GB screens are rasterized into banked 2bpp tiles with four shades. GBC screens
+use one four-color palette per screen, quantized from the layout. More than
+256 unique tiles on a screen prevents export with an explanation. GB/GBC edits
+can be regenerated from the included layout; the ARM projects also include
+editable C drawing functions in `source/layout.c`. These initial templates
+prioritize displaying layouts over animated or hardware-optimized rendering.
+
+GBA uses 153,600 bytes for its software buffer in EWRAM; DS uses 196,608 bytes
+and limits embedded RGBA image data to 2 MiB; 3DS uses 384,000 bytes. Large
+projects still need SDK link/memory checks. DSi uses the DS-family `.nds` target
+and the SDK's default ARM7 service; DSi-specific hardware is not used. 3DS
+output is a 2D Homebrew Launcher `.3dsx`, without CIA packaging or stereoscopy.
+SDKs, libraries, firmware and emulators are not bundled.
 
 ## C/C++ source discovery
 
@@ -206,8 +251,8 @@ simple C drawing convention, not a universal C/C++ scene parser.
   locally and is not bundled with the extension.
 - **Adding a C screen creates a function; navigation must be wired separately.**
   Moving DS drawing calls does not move input hitboxes.
-- Verify the compiled game in an emulator. This extension does not compile,
-  emulate or publish a game. Broader source scanning supports only the explicit
+- Verify the compiled game in an emulator. Project export creates buildable source separately; this extension does not run
+  a compiler or emulator, or publish a game. Broader source scanning supports only the explicit
   call conventions listed above.
 
 ## Privacy
@@ -216,8 +261,7 @@ The extension runtime contains no telemetry, account sign-in or network
 requests. Bundled examples are original Star Post layouts; no existing game
 project, ROM or artwork is bundled. README screenshots of an existing project
 are documentation only. Source and layout edits are disabled
-in untrusted workspaces. Edits affect selected layout/source documents, explicitly created exports and
-workspace drawing maps. PNG import also copies selected images into the layout
+in untrusted workspaces. Edits affect selected layout/source documents, explicitly created source/project exports and workspace drawing maps. PNG import also copies selected images into the layout
 asset folder. Referenced PNGs are read locally. Source scanning reads only the
 bounded set of workspace files described above.
 

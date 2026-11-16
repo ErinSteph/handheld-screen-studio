@@ -1,6 +1,6 @@
 'use strict';
 const vscode=require('vscode'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const source=require('./source.cjs'),assets=require('./assets.cjs'),layout=require('./layout.cjs'),exporter=require('./export.cjs'),adapters=require('./adapters.cjs'),imageAssets=require('./images.cjs');
+const source=require('./source.cjs'),assets=require('./assets.cjs'),layout=require('./layout.cjs'),exporter=require('./export.cjs'),adapters=require('./adapters.cjs'),imageAssets=require('./images.cjs'),projects=require('./project.cjs');
 let panel;
 function activate(context){context.subscriptions.push(vscode.commands.registerCommand('handheldScreens.open',async()=>{
  if(panel){panel.reveal();return;}
@@ -74,6 +74,20 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
   if(doc)edit.replace(uri,new vscode.Range(doc.positionAt(0),doc.positionAt(doc.getText().length)),text);else{edit.createFile(uri,{overwrite:false});edit.insert(uri,new vscode.Position(0,0),text);}
   if(!await vscode.workspace.applyEdit(edit))throw Error('Could not save drawing adapter configuration.');doc=await vscode.workspace.openTextDocument(uri);if(!await doc.save())throw Error('Drawing map is open but could not be saved.');await showSource((await document())||doc);await refresh();await web.postMessage({type:'info',message:'Project drawing map saved. Scan again if the source is not open yet.'});
  }
+ async function exportProject(){
+  trusted();if(target!=='layout'||!layoutDoc)throw Error('Open a portable layout to export a runnable project. Source projects already have their own SDK/build integration.');
+  const original=layoutDoc,version=original.version,data=layout.parse(original.getText()),images=imageAssets.collect(data,path.dirname(original.uri.fsPath)),result=projects.project(data,images);
+  const uri=await vscode.window.showSaveDialog({title:'Export runnable project to a NEW folder',saveLabel:'Export project',defaultUri:vscode.Uri.file(path.join(path.dirname(original.uri.fsPath),'handheld-'+result.target+'-project'))});if(!uri)return;
+  if(original.version!==version)throw Error('The layout changed during export. Retry with the current version.');
+  if(uri.scheme!=='file')throw Error('Choose a local project folder.');
+  const folder=uri.fsPath;fs.mkdirSync(folder); // Existing folders are never overwritten.
+  try{for(const [name,content]of Object.entries(result.files)){const file=path.join(folder,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,content,{flag:'wx'});}}
+  catch(e){throw Error('Project export could not finish: '+e.message+'. The partial new folder is kept for inspection; choose a different folder when retrying.');}
+  await web.postMessage({type:'info',message:'Project exported to '+folder+'. Open it in VS Code and run the Build handheld project task after installing the SDK. See README.md for controls and target limits.'});
+  const choice=await vscode.window.showInformationMessage('Exported '+result.output+' project source. SDK installation and make are required to build it.','Open project','View instructions');
+  if(choice==='Open project')await vscode.commands.executeCommand('vscode.openFolder',uri,{forceNewWindow:true});
+  else if(choice==='View instructions')await showSource(await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(folder,'README.md'))));
+ }
  async function exportSource(){
   trusted();if(target!=='layout'||!layoutDoc)throw Error('Open a portable layout before exporting source. Existing C/C++ files are edited in place, not converted to JSON.');
   const original=layoutDoc,version=original.version,data=layout.parse(original.getText());
@@ -93,6 +107,7 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
   if(m.type==='ready'||m.type==='refresh'){if(m.type==='ready'&&!layoutDoc&&!nativeTargets.length)await scanSources();await refresh();return;}
   if(m.type==='adapt'){await adaptDrawing();return;}
   if(m.type==='scan'){await scanSources();return;}
+  if(m.type==='exportProject'){await exportProject();return;}
   if(m.type==='export'){await exportSource();return;}
   if(m.type==='newLayout'){await newLayout();return;}
   if(m.type==='openLayout'){const choices=await vscode.window.showOpenDialog({title:'Open a .tm-screen.json layout',canSelectMany:false,filters:{'Screen layout':['json']}});if(!choices?.length)return;const doc=await vscode.workspace.openTextDocument(choices[0]);layout.parse(doc.getText());layoutDoc=doc;target='layout';sceneName='';await showSource(doc);await refresh();return;}

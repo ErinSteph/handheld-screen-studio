@@ -1,3 +1,13 @@
+# 0.5.0 — 16 November 2026
+
+- Add a separate More → Export runnable project action with startup, display
+  output, input loop, page navigation, Makefile and VS Code build task.
+- Generate GB/GBC projects for GBDK and GBA, DS/DSi and 3DS projects for devkitPro.
+- Convert GB/GBC screens to banked tiles, enforce the 256-tile limit, and
+  quantize GBC screens to four colors per screen.
+- Preserve the original layout/PNG assets in exported projects; ARM targets
+  include editable C drawing functions. SDKs and build execution remain external.
+
 # 0.4.0 — 16 November 2026
 
 - Keep screen editing primary: New screen and Save stay visible; adaptation,
