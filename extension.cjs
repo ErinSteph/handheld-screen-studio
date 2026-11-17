@@ -1,6 +1,6 @@
 'use strict';
 const vscode=require('vscode'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const source=require('./source.cjs'),assets=require('./assets.cjs'),layout=require('./layout.cjs'),exporter=require('./export.cjs'),adapters=require('./adapters.cjs'),imageAssets=require('./images.cjs'),projects=require('./project.cjs');
+const source=require('./source.cjs'),assets=require('./assets.cjs'),layout=require('./layout.cjs'),exporter=require('./export.cjs'),adapters=require('./adapters.cjs'),imageAssets=require('./images.cjs'),projects=require('./project.cjs'),dualViews=require('./dual.cjs');
 let panel,opening=false;
 const syncQueue=new Map();
 function activate(context){context.subscriptions.push(vscode.commands.registerCommand('handheldScreens.newProject',createProject),vscode.workspace.onDidSaveTextDocument(doc=>{queueSync(doc).catch(e=>vscode.window.showErrorMessage(e.message));}));context.subscriptions.push(vscode.commands.registerCommand('handheldScreens.open',async()=>{
@@ -8,7 +8,7 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
  const folders=vscode.workspace.workspaceFolders;if(!folders?.length){await createProject();return;}
  const folder=folders.find(f=>fs.existsSync(path.join(f.uri.fsPath,'ds/src/presentation.h')))||folders[0],root=folder.uri.fsPath;
  const nativeTargets=['ds','gba'].filter(p=>fs.existsSync(path.join(root,p,'src/presentation.h')));
- const discovered=new Map();
+ const discovered=new Map(),viewPreferences=new Map();
  function adapterFile(uri){return path.join((uri?vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath:null)||root,'.handheld-screen-studio.json');}
  function configured(uri){const file=adapterFile(uri);if(!fs.existsSync(file))return {};if(fs.statSync(file).size>32768)throw Error('Drawing adapter configuration is limited to 32 KiB.');return adapters.parse(fs.readFileSync(file,'utf8'));}
  let focusId=null;
@@ -23,7 +23,7 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
  const current=panel,web=current.webview,nonce=crypto.randomBytes(18).toString('base64');
  const showSource=doc=>vscode.window.showTextDocument(doc,current.viewColumn===vscode.ViewColumn.One?vscode.ViewColumn.Two:vscode.ViewColumn.One);
  const uri=name=>web.asWebviewUri(vscode.Uri.joinPath(context.extensionUri,'media',name));
- web.html=fs.readFileSync(path.join(context.extensionPath,'media/index.html'),'utf8').replaceAll('{{CSP}}',web.cspSource).replaceAll('{{NONCE}}',nonce).replace('{{STYLE}}',uri('style.css').toString()).replace('{{SCRIPT}}',uri('studio.js').toString());
+ web.html=fs.readFileSync(path.join(context.extensionPath,'media/index.html'),'utf8').replaceAll('{{CSP}}',web.cspSource).replaceAll('{{NONCE}}',nonce).replace('{{STYLE}}',uri('style.css').toString()).replace('{{SCRIPT}}',uri('studio.js').toString()).replace('{{DUAL_SCRIPT}}',uri('dual-view.js').toString());
  function trusted(){if(!vscode.workspace.isTrusted)throw Error('Trust this workspace before editing source.');}
  function currentSnapshot(m,doc){if(!snapshot||m.version!==doc.version||m.platform!==target||m.sceneName!==sceneName)throw Error('The source changed. Preview refreshed; retry your edit.');}
  async function replaceLayout(doc,data){const text=doc.getText(),edit=new vscode.WorkspaceEdit();edit.replace(doc.uri,new vscode.Range(doc.positionAt(0),doc.positionAt(text.length)),JSON.stringify(layout.validate(data),null,2)+'\n');if(!await vscode.workspace.applyEdit(edit))throw Error('Could not update the layout.');}
@@ -31,15 +31,19 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
   const doc=await document(),targets=nativeTargets.map(id=>({id,label:id==='ds'?'DS · C renderer':'GBA · C renderer'}));for(const [id,t]of discovered)targets.push({id,label:'C/C++ · '+vscode.workspace.asRelativePath(t.uri)});if(layoutDoc)targets.push({id:'layout',label:'Layout · '+path.basename(layoutDoc.uri.fsPath)});
   if(!doc){snapshot=null;await web.postMessage({type:'empty',trusted:vscode.workspace.isTrusted,message:'Start with New project, or use New screen to create a layout. Existing projects can be opened or scanned from More.',targets});return;}
   const portable=target==='layout',generic=discovered.has(target),text=doc.getText(),data=portable?layout.parse(text):null,scenes=portable?layout.scenes(data):source.scenes(text,target,configured(doc.uri));
+  if(!portable&&!discovered.has(target)&&target==='ds')for(const scene of scenes)scene.display=scene.name.match(/_(top|bottom)$/)?.[1];
   if(!scenes.some(f=>f.name===sceneName))sceneName=scenes.find(s=>s.name===(target==='ds'?'ds_home_top':'title'))?.name||scenes[0]?.name;
   if(!scenes.length&&!portable)throw Error('No drawable screens found.');
   const selected=scenes.find(f=>f.name===sceneName)||{name:'',label:'No screens yet',nodes:[],width:layout.profile(data.device).displays[0].width,height:layout.profile(data.device).displays[0].height},images={};let glyphs=font;
-  if(!portable&&!generic){cache[target]??=assets.load(root,target);const art=cache[target];glyphs=art.glyphs;for(const n of selected.nodes)if(n.card!==null){const kind=n.type==='art'?'art':'front';images[kind+':'+n.card]=art.image(kind,n.card);}}
-  if(portable){const loaded=imageAssets.collect(data,path.dirname(doc.uri.fsPath));for(const [asset,image]of Object.entries(loaded))images['image:'+asset]=image.uri;for(const n of selected.nodes)if(n.type==='image')n.imageKey='image:'+n.asset;}
-  if(generic){const bindings=source.textures(text,selected);for(const n of selected.nodes)if(n.type==='image'){const binding=bindings[n.imageBinding];if(!binding||binding.at>n.start){n.editable=false;n.imageError='No unambiguous texture initializer before this call.';continue;}try{const image=imageAssets.load(root,binding.asset);n.w=image.width;n.h=image.height;n.imageKey='texture:'+n.imageBinding;images[n.imageKey]=image.uri;}catch(e){n.imageError=e.message;}}}
+  const hardware=portable?layout.profile(data.device):generic?layout.profile(discovered.get(target).device):target==='ds'?layout.profile('ds'):null;
+  const viewKey=doc.uri.toString()+':'+(hardware?.id||target),dual=dualViews.view(scenes,hardware,viewPreferences.get(viewKey),sceneName,portable,discovered.get(target)?.display||'top');
+  viewPreferences.set(viewKey,dual);
+  const visible=dual.enabled?dual.screens.map(d=>d.scene):[selected];
+  if(!portable&&!generic){cache[target]??=assets.load(root,target);const art=cache[target];glyphs=art.glyphs;for(const scene of visible)for(const n of scene.nodes)if(n.card!==null){const kind=n.type==='art'?'art':'front';images[kind+':'+n.card]=art.image(kind,n.card);}}
+  if(portable){const loaded=imageAssets.collect(data,path.dirname(doc.uri.fsPath));for(const [asset,image]of Object.entries(loaded))images['image:'+asset]=image.uri;for(const scene of visible)for(const n of scene.nodes)if(n.type==='image')n.imageKey='image:'+n.asset;}
+  if(generic)for(const scene of visible){const bindings=source.textures(text,scene);for(const n of scene.nodes)if(n.type==='image'){const binding=bindings[n.imageBinding];if(!binding||binding.at>n.start){n.editable=false;n.imageError='No unambiguous texture initializer before this call.';continue;}try{const image=imageAssets.load(vscode.workspace.getWorkspaceFolder(doc.uri)?.uri.fsPath||root,binding.asset);n.w=image.width;n.h=image.height;n.imageKey='texture:'+scene.name+':'+n.imageBinding;images[n.imageKey]=image.uri;}catch(e){n.imageError=e.message;}}}
   for(const n of selected.nodes)if(!portable){try{source.statement(text,n);n.canRemove=true;n.canDuplicate=n.editable;}catch{}}
-  const hardware=portable?layout.profile(data.device):generic?layout.profile(discovered.get(target).device):null;
-  snapshot={platform:target,sceneName,version:doc.version};await web.postMessage({type:'snapshot',focusId,...snapshot,trusted:vscode.workspace.isTrusted,file:doc.uri.fsPath,targets,portable,generic,display:generic?(discovered.get(target).display||hardware.displays[0].id):null,hardware,devices:layout.devices,dimensions:portable?{width:selected.width,height:selected.height}:generic?hardware.displays.find(d=>d.id===(discovered.get(target).display||hardware.displays[0].id)):target==='gba'?{width:240,height:160}:{width:256,height:192},scenes:scenes.map(f=>({name:f.name,label:f.label,count:f.nodes.length})),scene:selected,glyphs,images,colors:portable?layout.recolor(data):generic?layout.recolor({device:hardware.id}):source.colors,colorNames:source.names});focusId=null;
+  snapshot={platform:target,sceneName,version:doc.version};await web.postMessage({type:'snapshot',focusId,dual,...snapshot,trusted:vscode.workspace.isTrusted,file:doc.uri.fsPath,targets,portable,generic,display:generic?(discovered.get(target).display||hardware.displays[0].id):null,hardware,devices:layout.devices,dimensions:portable?{width:selected.width,height:selected.height}:generic?hardware.displays.find(d=>d.id===(discovered.get(target).display||hardware.displays[0].id)):target==='gba'?{width:240,height:160}:{width:256,height:192},scenes:scenes.map(f=>({name:f.name,label:f.label,count:f.nodes.length})),scene:selected,glyphs,images,colors:portable?layout.recolor(data):generic?layout.recolor({device:hardware.id}):source.colors,colorNames:source.names});focusId=null;
  }catch(e){await web.postMessage({type:'error',message:e.message});}}
  async function newLayout(firstScreen=false){
   trusted();const device=await vscode.window.showQuickPick(layout.devices.map(p=>({label:p.label,description:p.displays.map(d=>`${d.id} ${d.width}×${d.height}`).join(' · '),id:p.id})),{title:'Choose a Nintendo handheld profile'});if(!device)return;
@@ -116,7 +120,15 @@ function activate(context){context.subscriptions.push(vscode.commands.registerCo
   if(m.type==='openLayout'){const choices=await vscode.window.showOpenDialog({title:'Open a .tm-screen.json layout',canSelectMany:false,filters:{'Screen layout':['json']}});if(!choices?.length)return;const doc=await vscode.workspace.openTextDocument(choices[0]);layout.parse(doc.getText());layoutDoc=doc;target='layout';sceneName='';await showSource(doc);await refresh();return;}
   if(m.type==='scene'){if(!nativeTargets.includes(m.platform)&&!discovered.has(m.platform)&&!(m.platform==='layout'&&layoutDoc))return;target=m.platform;sceneName=String(m.sceneName||'');await refresh();return;}
   const doc=await document();if(!doc){if(m.type==='add')await newLayout(true);return;}
-  if(m.type==='display'){currentSnapshot(m,doc);if(!discovered.has(target))return;const entry=discovered.get(target);if(!layout.profile(entry.device).displays.some(d=>d.id===m.display))throw Error('Unknown display.');entry.display=m.display;await refresh();return;}
+  if(m.type==='dualView'){
+   if(m.platform!==target)throw Error('The source changed. Retry the view selection.');
+   const portable=target==='layout',generic=discovered.has(target),data=portable?layout.parse(doc.getText()):null,scenes=portable?layout.scenes(data):source.scenes(doc.getText(),target,configured(doc.uri)),hardware=portable?layout.profile(data.device):generic?layout.profile(discovered.get(target).device):target==='ds'?layout.profile('ds'):null;
+   if(!portable&&!generic&&target==='ds')for(const scene of scenes)scene.display=scene.name.match(/_(top|bottom)$/)?.[1];
+   const key=doc.uri.toString()+':'+(hardware?.id||target),current=dualViews.view(scenes,hardware,viewPreferences.get(key),sceneName,portable,discovered.get(target)?.display||'top'),next=dualViews.change(current,m);
+   viewPreferences.set(key,next);if(next.enabled&&next[next.active]){sceneName=next[next.active];if(generic)discovered.get(target).display=next.active;}
+   await refresh();return;
+  }
+  if(m.type==='display'){currentSnapshot(m,doc);if(!discovered.has(target))return;const entry=discovered.get(target);if(!layout.profile(entry.device).displays.some(d=>d.id===m.display))throw Error('Unknown display.');entry.display=m.display;const key=doc.uri.toString()+':'+entry.device,preferences=viewPreferences.get(key);if(preferences)preferences.active=m.display;await refresh();return;}
   if(m.type==='device'){
    currentSnapshot(m,doc);if(discovered.has(target)){layout.profile(m.device);discovered.get(target).device=m.device;discovered.get(target).display=layout.profile(m.device).displays[0].id;await refresh();return;}trusted();if(target!=='layout')return;const data=layout.parse(doc.getText()),p=layout.profile(m.device);data.device=p.id;
    for(const s of data.screens)if(!p.displays.some(d=>d.id===s.display))s.display=p.displays[0].id;

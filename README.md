@@ -76,6 +76,27 @@ Screen dimensions follow [Pan Docs](https://gbdev.io/pandocs/),
 [GBATEK](https://mgba-emu.github.io/gbatek/), and
 [Nintendo's 3DS specifications](https://www.nintendo.co.jp/event/conference2010/3ds/spec.pdf).
 
+## Align both displays
+
+On **DS, DS Lite, DSi/XL and every 3DS/2DS/New profile**, enable **Both screens**
+next to Zoom. The upper and lower displays are stacked at one shared zoom,
+with a small **4-pixel preview gap**. Fit zoom keeps the pair visible where
+space permits. The 3DS upper/lower canvases keep their native 400/320 widths
+and are centred, so the preview does not stretch either display.
+
+Open **Screen pairing & gap** to choose what appears on each display with the
+**Upper / Lower** selectors. Click a display or **Edit upper / Edit lower** to make it active;
+that first click only activates it. The element list, properties, dragging and
+resizing apply to the active display. The other remains visible for alignment.
+Dragging across the gap keeps editing the original active screen.
+
+The gap can be set from 0 to 32 preview pixels. These view settings never change
+layout coordinates, display assignments, exported images or generated game code.
+Portable layouts offer only screens assigned to the corresponding display.
+Scanned source functions can be paired explicitly; native DS top/bottom names
+supply defaults. Reusing the same source function on both displays still shares
+that function's underlying code.
+
 ## Portable layout files
 
 Portable `.tm-screen.json` files contain a device ID and named screens with

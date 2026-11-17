@@ -1,3 +1,13 @@
+# 0.7.0 — 17 November 2026
+
+- Add an optional stacked upper/lower preview for all DS/DSi and 3DS/2DS variants.
+- Use a shared zoom, native display widths and a small four-pixel preview gap;
+  allow explicit screen pairing and a 0–32 pixel preview gap.
+- Keep one display active for element editing, with click-to-activate and local
+  coordinates preserved when dragging or resizing across the display boundary.
+- Keep preview pairing, activation and gap settings separate from saved layouts
+  and generated game code.
+
 # 0.6.0 — 16 November 2026
 
 - Start a new SDK project from an empty VS Code window, with an explicit
